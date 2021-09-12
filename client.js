@@ -1,6 +1,7 @@
 
 const { connect } = require("http2");
 const net = require("net");
+const parser = require("./parser.js") //引入自定义parser文件
 
 class Request {
     constructor(options){
@@ -45,8 +46,9 @@ class Request {
                 parser.receive(data.toString());
                 if(parser.isFinished) {
                     resolve(parser.response);
-                    connnection.end();
+                    
                 }
+                connnection.end();
             });
             connnection.on('err',(err) => {
                 reject(err);
@@ -57,7 +59,7 @@ class Request {
 
     toString(){
         return `${this.method} ${this.path} HTTP/1.1\r
-${Object.keys(this.headers).map(key => `${key}: ${this.headers[key]}`).join('\r\n')}
+${Object.keys(this.headers).map(key => `${key}: ${this.headers[key]}`).join('\r\n')}\r
 \r
 ${this.bodyText}`
     }
@@ -87,7 +89,7 @@ class ResponseParser{
     }
 
     get response(){
-        this.statusLine.match(/HTTP\/1.1([0-9]+)([\s\S]+)/);
+        this.statusLine.match(/HTTP\/1.1 ([0-9]+) ([\s\S]+)/);
         return {
             statusCode: RegExp.$1,
             statusText: RegExp.$2,
@@ -145,15 +147,14 @@ class ResponseParser{
             }
         } else if (this.current === this.WATTING_HEADER_LINE_END){
             if(char === '\n'){
-                this.current === this.WATTING_HEADER_NAME;
+                this.current = this.WATTING_HEADER_NAME;
             }
         } else if (this.current === this.WATTING_HEADER_BLOCK_END){
             if(char === '\n'){
-                this.current === this.WATTING_BODY;
+                this.current = this.WATTING_BODY;
             }
-        } else if (this.current === this.WATTING_BODY){
-            console.log(char);
-            this.bodyParser.receiveChar(char);
+        } else if (this.current = this.WATTING_BODY){
+            this. bodyParser.receiveChar(char);
         }
     }
 }
@@ -173,7 +174,7 @@ class TrunkBodyParser {
 
     receiveChar(char){
         if(this.current === this.WATTING_LENGTH){
-            if(chat == '\r'){
+            if(char == '\r'){
                 if(this.length === 0){
                     this.isFinished = true;
                 }
@@ -220,7 +221,10 @@ void async function (){
 
     let response = await request.send();
 
-    console.log(response)
+    //实际接收resoponse 是需要异步分段接收
+
+    let dom = parser.parserHTML(response.body);
+    // console.log(response)
 }()
 
 //async function 之后需要加一个（） 不然会导致只是声明了函数但并不会运行
