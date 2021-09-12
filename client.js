@@ -42,7 +42,7 @@ class Request {
                 })
             }
             connnection.on('data', (data) =>{
-                console.log(data.toString());
+                // console.log(data.toString());
                 parser.receive(data.toString());
                 if(parser.isFinished) {
                     resolve(parser.response);
@@ -225,6 +225,7 @@ void async function (){
 
     let dom = parser.parserHTML(response.body);
     // console.log(response)
+    console.log(dom);
 }()
 
 //async function 之后需要加一个（） 不然会导致只是声明了函数但并不会运行

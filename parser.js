@@ -1,10 +1,54 @@
+const { type } = require("os");
+
 let currentToken = null; //将tag当作token处理
 let currentAttribute = null;
+
+let stack = [{type:"document",children:[]}];//通过栈 将token转换 建立dom树 
 
 //将标签转换为token 输出 
 function emit(token){
     //if(token.type != "text")
-    console.log(token);
+    // console.log(token);
+    if(token.type === "text"){
+        return; 
+    }
+    let top = stack[stack.length-1];//栈顶
+
+    if(token.type == "startTag"){
+        let element = {
+            type: "element",
+            children: [],
+            attributes: []
+        };
+
+        element.tagName = token.tagName;
+
+        for (let p in token){  //将属性添加到element
+            if(p != "type" && p != "tagName"){
+                element.attributes.push({
+                    name:p,
+                    value:token[p]
+                })
+            }
+        }
+
+        top.children.push(element); //组件入栈
+        element.parent = top;
+
+        if(!token.isSelfClose){
+            stack.push(element);
+        }
+
+        currentTextNode = null;
+    } else if (token.type == "endTag"){
+        if(top.tagName != token.tagName){
+            throw new Error("tag start end doesn't match");
+        } else {
+            stack.pop();
+        }
+        currentTextNode = null;
+    }
+
 }
 
 
@@ -190,6 +234,7 @@ function UnquotedAttributeValue(c){
 function selfClosingStartTag(c){
     if(c == ">"){
         currentToken.isSelfClose = true;
+        emit(currentToken)
         return data;
     } else if ( c == EOF){
         
@@ -228,4 +273,5 @@ module.exports.parserHTML = function parserHTML(html){
         state = state(c);
     }
     state = state(EOF);
+    console.log(stack[0]);
 }
