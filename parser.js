@@ -1,4 +1,6 @@
-const { type } = require("os");
+const css = require('css');
+
+const EOF = Symbol("EOF")
 
 let currentToken = null; //将tag当作token处理
 let currentAttribute = null;
@@ -44,6 +46,11 @@ function emit(token){
         if(top.tagName != token.tagName){
             throw new Error("tag start end doesn't match");
         } else {
+
+            //遇到style标签，执行添加css操作----------------------------
+            if(top.name == "style"){
+                addCssRules(top.children[0].content)
+            }
             stack.pop();
         }
         currentTextNode = null;
