@@ -1,19 +1,62 @@
+const { match } = require('assert');
 const css = require('css');
 
-const EOF = Symbol("EOF")
+const EOF = Symbol("EOF") ;
 
 let currentToken = null; //将tag当作token处理
 let currentAttribute = null;
 
 let stack = [{type:"document",children:[]}];//通过栈 将token转换 建立dom树 
+let currentTextNode = null;
+
+let rules = [];
+
+//调用css parser 的css rules
+function addCSSRules(text) {
+    var ast  = css.parse(text);
+    // console.log(JSON.stringify(ast,null, "  "));
+    rules.push(...ast.stylesheet.rules);
+}
+
+function match(element, selector)
+
+
+function computeCSS(element) {
+    // console.log(rules);
+    console.log("compute CSS for element",element);
+    var elements = stack.slice().reverse(); //复制防止栈数据被污染  获取元素父级
+    if(!element.computedStyle){
+        element.computedStyle = {}; //计算的css属性放入选择元素
+
+        for (let rule of rules){
+            var selectorParts = rule.selectors[0].split(" ").reverse(); //从内而外搜索
+
+            if(!match(element, selectors[0])){
+                continue;
+            }
+            let matched = false;
+
+            var j = 1;
+            for(var i = 0;i < elements.length; i++){
+                if(match(elements[i],selectors[j])){
+                    j++;
+                }
+            }
+            if(j >= selectorParts.length){
+                matched = true;
+            }
+            if(matched){
+                console.log("Element",element,"matched rule ",rule);
+            }
+        }
+    }
+}
 
 //将标签转换为token 输出 
 function emit(token){
     //if(token.type != "text")
     // console.log(token);
-    if(token.type === "text"){
-        return; 
-    }
+    
     let top = stack[stack.length-1];//栈顶
 
     if(token.type == "startTag"){
@@ -34,6 +77,8 @@ function emit(token){
             }
         }
 
+        computeCSS(element); //计算css 规则
+
         top.children.push(element); //组件入栈
         element.parent = top;
 
@@ -48,18 +93,27 @@ function emit(token){
         } else {
 
             //遇到style标签，执行添加css操作----------------------------
-            if(top.name == "style"){
-                addCssRules(top.children[0].content)
+            if(top.tagName == "style"){
+                addCSSRules(top.children[0].content)
             }
             stack.pop();
         }
         currentTextNode = null;
+
+    } else if (token.type == "text"){
+        if(currentTextNode == null){
+            currentTextNode= {
+                type:"text",
+                content:""
+            }
+            top.children.push(currentTextNode);
+        }
+        currentTextNode.content += token.content;
     }
 
 }
 
 
-const EOF = Symbol("EOF");
 
 
 function data(c){
